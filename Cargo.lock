@@ -170,7 +170,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openapi-forge"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/openapi-forge#dbb2b651139046e75e62df048cc158f0ebf0f01a"
+source = "git+https://github.com/pleme-io/openapi-forge#e9bd7d2313580b9dd5357dd22cde9fc5111cd124"
 dependencies = [
  "indexmap",
  "serde",
@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "terraform-forge"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/terraform-forge#ad5842051cb83a283f37f0dd4639308c3cdad4c0"
+source = "git+https://github.com/pleme-io/terraform-forge#b8bf682c0c9af1d271f1ce013141891637e520d2"
 dependencies = [
  "heck",
  "indexmap",

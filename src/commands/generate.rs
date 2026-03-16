@@ -3,7 +3,9 @@ use std::path::Path;
 
 use colored::Colorize;
 use openapi_forge::Spec;
-use terraform_forge::{ProviderSpec, ResourceSpec, generate_provider, generate_resource};
+use terraform_forge::{
+    ProviderSpec, ResourceSpec, generate_provider, generate_resource, generate_test,
+};
 
 pub fn run(
     spec_path: &Path,
@@ -21,7 +23,6 @@ pub fn run(
     let provider = if let Some(p) = provider_path {
         ProviderSpec::load(p)?
     } else {
-        // Look for provider.toml in resources dir parent
         let provider_toml = resources_dir
             .parent()
             .unwrap_or(resources_dir)
@@ -35,7 +36,6 @@ pub fn run(
 
     let defaults = provider.defaults.clone();
 
-    // Find all resource TOML files
     let resource_files = find_toml_files(resources_dir)?;
     println!(
         "{} Found {} resource specs",
@@ -43,19 +43,19 @@ pub fn run(
         resource_files.len()
     );
 
-    // Create output directories
     let resources_out = output_dir.join("resources");
     let provider_out = output_dir.join("provider");
+    let tests_out = output_dir.join("resources");
     fs::create_dir_all(&resources_out)?;
     fs::create_dir_all(&provider_out)?;
 
     let mut type_names = Vec::new();
     let mut tf_names = Vec::new();
+    let mut test_count = 0;
 
     for file in &resource_files {
         let resource = ResourceSpec::load(file)?;
 
-        // Validate against spec
         if let Err(e) = resource.validate(&api) {
             eprintln!("{} {}: {e}", "warning:".yellow().bold(), file.display());
             continue;
@@ -77,11 +77,15 @@ pub fn run(
                 "!!".yellow(),
                 generated.file_name
             );
-            // Copy override to resources output
             fs::copy(&override_path, resources_out.join(&generated.file_name))?;
         } else {
             fs::write(resources_out.join(&generated.file_name), &generated.go_code)?;
         }
+
+        // Generate acceptance test scaffold
+        let test = generate_test(&resource);
+        fs::write(tests_out.join(&test.file_name), &test.go_code)?;
+        test_count += 1;
     }
 
     // Generate provider.go
@@ -90,7 +94,8 @@ pub fn run(
         "->".green(),
         type_names.len()
     );
-    let provider_code = generate_provider(&provider, &type_names, &tf_names);
+    let data_source_names: Vec<String> = Vec::new();
+    let provider_code = generate_provider(&provider, &type_names, &tf_names, &data_source_names);
     fs::write(provider_out.join("provider.go"), &provider_code)?;
 
     // Generate common helpers
@@ -98,9 +103,10 @@ pub fn run(
     fs::write(resources_out.join("helpers.go"), &helpers)?;
 
     println!(
-        "\n{} Generated {} resources + provider.go in {}",
+        "\n{} Generated {} resources + {} tests + provider.go in {}",
         "done".green().bold(),
         type_names.len(),
+        test_count,
         output_dir.display()
     );
 
@@ -124,13 +130,14 @@ fn generate_helpers() -> String {
 package resources
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"bytes"
+	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -150,19 +157,18 @@ func NewAkeylessClient(gatewayURL, token string) *AkeylessClient {
 	}
 }
 
-// Call makes an API request to the given endpoint.
-func (c *AkeylessClient) Call(ctx context.Context, body interface{}) (json.RawMessage, error) {
-	payload, ok := body.(interface{ Endpoint() string })
-	if !ok {
-		return nil, fmt.Errorf("body must implement Endpoint()")
+// CallEndpoint makes an API POST request to the given endpoint with a map body.
+func (c *AkeylessClient) CallEndpoint(ctx context.Context, endpoint string, params map[string]interface{}) (map[string]interface{}, error) {
+	if c.Token != "" {
+		params["token"] = c.Token
 	}
 
-	jsonBody, err := json.Marshal(body)
+	jsonBody, err := json.Marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s%s", c.GatewayURL, payload.Endpoint())
+	url := fmt.Sprintf("%s%s", c.GatewayURL, endpoint)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
@@ -171,17 +177,24 @@ func (c *AkeylessClient) Call(ctx context.Context, body interface{}) (json.RawMe
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("making request: %w", err)
+		return nil, fmt.Errorf("making request to %s: %w", endpoint, err)
 	}
 	defer resp.Body.Close()
 
-	var result json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(result))
+		return nil, fmt.Errorf("API error %d on %s: %s", resp.StatusCode, endpoint, string(respBody))
+	}
+
+	var result map[string]interface{}
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("decoding response from %s: %w", endpoint, err)
+		}
 	}
 
 	return result, nil
@@ -195,6 +208,77 @@ func expandStringSet(ctx context.Context, set types.Set) []string {
 	var result []string
 	set.ElementsAs(ctx, &result, false)
 	return result
+}
+
+// GetNestedString retrieves a string from a nested map using dot-notation path.
+func GetNestedString(data map[string]interface{}, path string) (string, bool) {
+	parts := strings.Split(path, ".")
+	current := data
+
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			if v, ok := current[part]; ok {
+				switch val := v.(type) {
+				case string:
+					return val, true
+				case float64:
+					return fmt.Sprintf("%v", val), true
+				case bool:
+					return fmt.Sprintf("%v", val), true
+				default:
+					return fmt.Sprintf("%v", val), true
+				}
+			}
+			return "", false
+		}
+
+		if next, ok := current[part]; ok {
+			if m, ok := next.(map[string]interface{}); ok {
+				current = m
+			} else {
+				return "", false
+			}
+		} else {
+			return "", false
+		}
+	}
+
+	return "", false
+}
+
+// GetNestedStringSlice retrieves a string slice from a nested map.
+func GetNestedStringSlice(data map[string]interface{}, path string) ([]string, bool) {
+	parts := strings.Split(path, ".")
+	current := data
+
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			if v, ok := current[part]; ok {
+				if arr, ok := v.([]interface{}); ok {
+					result := make([]string, 0, len(arr))
+					for _, item := range arr {
+						if s, ok := item.(string); ok {
+							result = append(result, s)
+						}
+					}
+					return result, true
+				}
+			}
+			return nil, false
+		}
+
+		if next, ok := current[part]; ok {
+			if m, ok := next.(map[string]interface{}); ok {
+				current = m
+			} else {
+				return nil, false
+			}
+		} else {
+			return nil, false
+		}
+	}
+
+	return nil, false
 }
 "#
     .to_string()
