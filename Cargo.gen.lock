@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "53c58cb253c95bb6eb494a82fc0c8a1fdc19704ae0ad804d3ebf5af6e31c7e68",
+  "cargo_lock_sha256": "6a45e0285e0a0eee0e97239c63054bf8a98a68c62d492d6d3eb4a9fefde9551a",
   "target_resolves": {
     "base": {
       "anstream-1.0.0": {
@@ -355,7 +355,7 @@
           },
           {
             "name": "openapi_forge",
-            "package_key": "openapi-forge-0.1.1",
+            "package_key": "openapi-forge-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -486,7 +486,7 @@
           "std"
         ]
       },
-      "openapi-forge-0.1.1": {
+      "openapi-forge-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "indexmap",
@@ -974,7 +974,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "terraform-forge-0.1.1": {
+      "terraform-forge-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "iac_forge",
@@ -1010,7 +1010,7 @@
           },
           {
             "name": "openapi_forge",
-            "package_key": "openapi-forge-0.1.1",
+            "package_key": "openapi-forge-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1100,7 +1100,7 @@
           },
           {
             "name": "openapi_forge",
-            "package_key": "openapi-forge-0.1.1",
+            "package_key": "openapi-forge-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1132,7 +1132,7 @@
           },
           {
             "name": "terraform_forge",
-            "package_key": "terraform-forge-0.1.1",
+            "package_key": "terraform-forge-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1931,7 +1931,7 @@
     "memchr-2.8.0": {
       "edition": "2021"
     },
-    "openapi-forge-0.1.1": {
+    "openapi-forge-0.1.2": {
       "edition": "2024"
     },
     "proc-macro2-1.0.106": {
@@ -1982,7 +1982,7 @@
     "takumi-0.1.0": {
       "edition": "2024"
     },
-    "terraform-forge-0.1.1": {
+    "terraform-forge-0.1.2": {
       "edition": "2024"
     },
     "terraform-forge-cli-0.1.0": {
@@ -2046,11 +2046,11 @@
   },
   "git_nar_sha256": {
     "iac-forge-0.1.0": "sha256-JJLxk1jpaQtPyfHJLA1McpTd0llFQ9aKk9LbBxePyeI=",
-    "meimei-0.1.1": "sha256-GRqKw63sl3lo36lgwtYiMCk7A/egtmKts9UVGvK6WlI=",
-    "openapi-forge-0.1.1": "sha256-tlrEeC1CPCEw9Pc+itBwIVHsKsMz0APueRkwJl3Copk=",
-    "sekkei-0.1.1": "sha256-qOa3MHGqWVhvbjmjHg0RJo0pfNSOXqEArNAQ0xfQNXw=",
-    "takumi-0.1.0": "sha256-neqseMVFLwd6TWIZAF4ylEkbAYzWUTzYYeDBDzYShNg=",
-    "terraform-forge-0.1.1": "sha256-vS/oc1AhMEcJdv0LENEtEjfmFN3MVv+S/ysNkOR5uhg="
+    "meimei-0.1.1": "sha256-6ofJ5MQSCTpFUI2OLNBrXXUWDFDfwDuwfqF7A0b2dKA=",
+    "openapi-forge-0.1.2": "sha256-P/brnxxLGELUJPiqWwnnfNItuA0c9l2s9aFAJ/Dd7ZY=",
+    "sekkei-0.1.1": "sha256-QKIS+nHcesEYSNUbwdnMXG+6sYQxxV2iWQJFNxEFXKg=",
+    "takumi-0.1.0": "sha256-vwA1UWcPv2DfAl2mQlTjIvESqtRMyBbMTf7sN2SMSVM=",
+    "terraform-forge-0.1.2": "sha256-e+JHYAPxax6DPPkUt0nltqy6wGdwVMmdCo1p1uVU+QA="
   },
   "flake_metadata": {}
 }
