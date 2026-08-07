@@ -19,14 +19,21 @@ path = "src/main.rs"
 pedantic = "warn"
 
 [dependencies]
-openapi-forge = { git = "https://github.com/pleme-io/openapi-forge" }
-terraform-forge = { git = "https://github.com/pleme-io/terraform-forge" }
+openapi-forge = "0.1"
+terraform-forge = "0.1"
 clap = { version = "4", features = ["derive"] }
 colored = "3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
 glob = "0.3"
+
+# `src/commands/generate.rs`'s test module has always used tempfile::TempDir
+# while no [dev-dependencies] section existed at all, so that test target could
+# never compile. It went unnoticed because the build failed earlier, on the
+# git-pinned iac-forge API, and never reached the missing crate.
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 codegen-units = 1
